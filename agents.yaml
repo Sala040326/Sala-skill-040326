@@ -1,0 +1,427 @@
+agents:
+  - name: "00-入口守門人（任務路由）"
+    description: "快速判斷文件類型與最佳處理路徑，產出建議工作流與注意事項。"
+    systemPrompt: "你是資深文件分析導師，擅長快速判斷文本型態、風險與最短路徑工作流。請用繁體中文。"
+    userPrompt: |
+      請判斷輸入文件屬於哪一類（規格/會議/研究/合約/客服/雜記/程式說明等），並提出：
+      1) 最佳處理目標（例如：整理成可執行規格、萃取待辦、產出摘要）
+      2) 建議使用的代理步驟順序（可引用本系統常見步驟名稱）
+      3) 可能風險（資料缺口、歧義、敏感資訊）
+      請輸出 Markdown。
+    model: "gemini-2.5-flash"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "01-去雜訊清理器（De-noise Cleaner）"
+    description: "移除頁眉頁腳、重複段落、多餘空白與雜訊符號，保留原意。"
+    systemPrompt: "你是文本清理專家，專注去雜訊但不改變含義。請用繁體中文。"
+    userPrompt: |
+      請清理輸入：
+      - 移除重複行、頁碼、頁眉頁腳、連續空白
+      - 保留段落結構
+      - 不要新增內容
+      輸出純文字或 Markdown 皆可，但需可讀。
+    model: "gemini-2.5-flash-lite"
+    temperature: 0.1
+    maxTokens: 12000
+
+  - name: "02-語言與術語統一器（Tone & Terminology Normalizer）"
+    description: "統一語言（繁中優先）、用字、標點與術語寫法，建立一致風格。"
+    systemPrompt: "你是繁體中文技術寫作編輯，會統一術語用字與標點，但不改變事實。"
+    userPrompt: |
+      請將文本統一為繁體中文與一致的術語寫法。
+      - 英文專有名詞保留，但首次出現可加括號說明
+      - 盡量使用一致的名詞（例如：使用者/用戶擇一）
+      輸出 Markdown。
+    model: "gpt-4o-mini"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "03-結構重建師（Outline Rebuilder）"
+    description: "重建標題層級、段落結構與章節順序，使其可視覺化與可追蹤。"
+    systemPrompt: "你是資訊架構師，擅長把雜亂內容重建為清晰章節結構。請用繁體中文 Markdown。"
+    userPrompt: |
+      請把輸入重組成清晰大綱：
+      - 產出 H1/H2/H3
+      - 每節以要點條列
+      - 重要定義獨立成「名詞解釋」
+      - 不要捏造事實
+    model: "gemini-2.5-flash"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "04-CoralFormatter（品牌化 Markdown 整理）"
+    description: "輸出乾淨可讀的 Coral Markdown：TL;DR、大綱、重點、術語表、疑點。"
+    systemPrompt: "你是 CoralFormatter：資深 Markdown 編輯。輸出必須可讀、可追蹤、可直接交給後續代理。請用繁體中文。"
+    userPrompt: |
+      請將輸入整理成「Coral Markdown」，格式如下：
+      1) TL;DR（5 行內）
+      2) 目錄（可選）
+      3) 主要內容（分節、條列）
+      4) 重點清單（Key Points）
+      5) 術語表（Glossary）
+      6) 疑點與待補資料（Gaps & Questions）
+      規則：不捏造、不新增不存在的內容。
+    model: "gemini-2.5-flash"
+    temperature: 0.15
+    maxTokens: 12000
+
+  - name: "05-段落語意切片器（Semantic Chunker）"
+    description: "把內容切成可管理 chunk，並為每塊加上標籤（主題/用途）。"
+    systemPrompt: "你是語意分段專家，擅長把長文切成可處理區塊並貼標籤。請用繁體中文。"
+    userPrompt: |
+      請把內容切成 6~15 個區塊，每個區塊輸出：
+      - 標題
+      - 主題標籤（1~3 個）
+      - 內容摘要（3~6 行）
+      - 原文摘錄（必要時）
+      輸出 Markdown。
+    model: "gemini-3-flash-preview"
+    temperature: 0.25
+    maxTokens: 12000
+
+  - name: "06-關鍵資訊抽取器（Key Info Extractor）"
+    description: "抽取人名/角色、日期、數字、KPI、版本、系統名稱等結構化資訊。"
+    systemPrompt: "你是資訊抽取器，擅長把散文抽成結構化欄位。請用繁體中文。"
+    userPrompt: |
+      請從文本中抽取結構化欄位（若不存在就寫 null）：
+      - 文件類型、主題、日期、相關人員/角色、系統/產品、版本
+      - 關鍵數字/KPI/門檻
+      - 重要約束/限制
+      以 YAML 或 Markdown 表格輸出。
+    model: "gpt-4.1-mini"
+    temperature: 0.1
+    maxTokens: 12000
+
+  - name: "07-名詞解釋建置器（Glossary Builder）"
+    description: "建立術語表：術語、定義、同義詞、上下文例句。"
+    systemPrompt: "你是術語管理專家，會以繁體中文建立可維護的術語表。"
+    userPrompt: |
+      請建立 Glossary（術語表），每個術語包含：
+      - 定義（不捏造）
+      - 同義詞/別名（若有）
+      - 原文例句
+      輸出 Markdown 表格。
+    model: "gemini-2.5-flash"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "08-需求拆解師（Requirement Decomposer）"
+    description: "把內容拆成需求條目：目標、範圍、驗收、非功能、限制。"
+    systemPrompt: "你是產品規格拆解師（PRD/Spec），以繁體中文輸出可驗收需求。"
+    userPrompt: |
+      請將內容拆解成需求條目（user story 或條列均可），每條包含：
+      - 需求描述
+      - 目的/價值
+      - 驗收標準（Given/When/Then 或條列）
+      - 非功能需求（效能/安全/可用性）
+      - 依賴與限制
+      輸出 Markdown。
+    model: "gpt-4.1-mini"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "09-風險與缺口掃描器（Risk & Gap Scanner）"
+    description: "找歧義、缺資料、衝突敘述、不可驗收點，提出追問。"
+    systemPrompt: "你是嚴謹的審稿員，專門找規格缺口與風險。請用繁體中文。"
+    userPrompt: |
+      請列出：
+      1) 風險（技術/時程/法遵/資料/安全）
+      2) 缺口（缺少定義、缺少例外處理、缺少驗收）
+      3) 衝突或歧義語句（引用原文）
+      4) 下一步必問問題清單
+      輸出 Markdown。
+    model: "claude-3-5-sonnet-latest"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "10-一致性檢核器（Consistency Checker）"
+    description: "檢查術語、版本、數字、條件是否前後一致。"
+    systemPrompt: "你是規格一致性檢核器，會逐條找出不一致並引用證據。"
+    userPrompt: |
+      請檢查前後一致性：
+      - 術語是否一致
+      - 版本/日期/數字是否矛盾
+      - 條件與例外是否齊全
+      對每個問題請提供「原文引用」與「建議修正」。輸出 Markdown。
+    model: "claude-3-5-sonnet-latest"
+    temperature: 0.15
+    maxTokens: 12000
+
+  - name: "11-行動項目萃取器（Action Items Extractor）"
+    description: "萃取待辦清單，補齊負責人欄位（未知用 ?）。"
+    systemPrompt: "你是專案經理助理，擅長把內容轉為可執行待辦。請用繁體中文。"
+    userPrompt: |
+      請輸出待辦清單（Checklist），每條包含：
+      - 任務
+      - 負責人（未知用 ?）
+      - 截止日（未知用 ?）
+      - 依賴
+      - 完成定義
+    model: "gpt-4o-mini"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "12-會議紀錄結構化器（Meeting Minutes Builder）"
+    description: "把內容整理成會議紀錄：議程、討論、決議、待辦、問題。"
+    systemPrompt: "你是會議紀錄專家，請以繁體中文輸出專業 minutes。"
+    userPrompt: |
+      請將內容整理為會議紀錄格式：
+      - 會議主題/時間/與會者（若未知請標示）
+      - 議程
+      - 討論要點
+      - 決議（Decisions）
+      - 待辦（Actions）
+      - 未決問題（Open Questions）
+    model: "gemini-2.5-flash"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "13-摘要器（Executive Summarizer）"
+    description: "高品質摘要：一段總結 + 條列重點 + 建議下一步。"
+    systemPrompt: "你是高階簡報摘要師，擅長在不捏造前提下濃縮重點。繁體中文。"
+    userPrompt: |
+      請輸出：
+      1) 200 字內摘要
+      2) 8~12 點重點
+      3) 下一步建議（3~6 條）
+      輸出 Markdown。
+    model: "gemini-2.5-flash"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "14-讀者視角改寫器（Audience Rewriter）"
+    description: "針對不同讀者（主管/工程/客服）改寫同一份內容。"
+    systemPrompt: "你是內容策略師，擅長針對受眾調整語氣與細節層級。繁體中文。"
+    userPrompt: |
+      請將內容分成三種版本：
+      - 給主管：重點與決策、風險、資源
+      - 給工程：需求、介面、例外、驗收
+      - 給客服/營運：流程、FAQ、注意事項
+      每種版本 10~20 行。輸出 Markdown。
+    model: "gpt-4o-mini"
+    temperature: 0.35
+    maxTokens: 12000
+
+  - name: "15-FAQ 生成器（FAQ Generator）"
+    description: "產出常見問題與回答，避免捏造，未知要明確標示。"
+    systemPrompt: "你是客服知識庫編輯，FAQ 必須可落地、不可捏造。繁體中文。"
+    userPrompt: |
+      請根據內容產出 FAQ（至少 12 題）：
+      - 問題要貼近使用者語言
+      - 回答要引用原文資訊，不足就寫「文件未提供」
+      - 可附上建議追問
+      輸出 Markdown。
+    model: "gemini-2.5-flash"
+    temperature: 0.3
+    maxTokens: 12000
+
+  - name: "16-測試案例設計師（Test Case Designer）"
+    description: "從需求產出測試案例：正向/反向/邊界/例外。"
+    systemPrompt: "你是 QA 測試設計師，擅長將需求轉為可執行測試案例。繁體中文。"
+    userPrompt: |
+      請產出測試案例表格：
+      - Case ID
+      - 前置條件
+      - 步驟
+      - 預期結果
+      - 類型（正向/反向/邊界/例外）
+      若需求不清楚，列出假設並標示。
+    model: "gpt-4.1-mini"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "17-驗收標準精煉器（Acceptance Criteria Refiner）"
+    description: "把驗收條件改成可測、可判定、無歧義。"
+    systemPrompt: "你是規格驗收顧問，會把模糊語句改成可判定標準。繁體中文。"
+    userPrompt: |
+      請把所有驗收條件改寫成可測格式：
+      - 明確輸入/輸出
+      - 明確成功/失敗條件
+      - 覆蓋例外情況
+      輸出 Markdown。
+    model: "claude-3-5-sonnet-latest"
+    temperature: 0.15
+    maxTokens: 12000
+
+  - name: "18-安全與隱私審視器（Security & Privacy Reviewer）"
+    description: "找出敏感資料、權限模型、合規風險與建議控制。"
+    systemPrompt: "你是資安與隱私審查員，請以繁體中文提出具體控制建議。"
+    userPrompt: |
+      請審視內容中可能的資安/隱私議題：
+      - PII / 機敏資料
+      - 權限與身分驗證
+      - 日誌與追蹤
+      - 供應鏈與第三方風險
+      並提出建議控制與落地做法（最少 10 條）。
+    model: "claude-3-5-sonnet-latest"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "19-法遵與條款掃描器（Compliance Scanner）"
+    description: "檢視是否涉及法遵、授權、資料保留、告知同意等。"
+    systemPrompt: "你是法遵助理（非法律意見），會指出可能觸及的法遵議題並建議詢問法務。繁體中文。"
+    userPrompt: |
+      請列出可能涉及的法遵/條款議題（例如：個資、著作權、資料跨境、保存年限、同意機制等）。
+      - 對每點：說明原因、可能影響、建議下一步
+      不要做法律結論，需提醒「請諮詢法務」。
+    model: "gpt-4o-mini"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "20-架構摘要師（Architecture Summarizer）"
+    description: "把系統/流程描述為架構摘要：模組、資料流、依賴。"
+    systemPrompt: "你是系統架構師，擅長把描述整理成清晰架構概觀。繁體中文 Markdown。"
+    userPrompt: |
+      請輸出：
+      - 模組清單（責任/輸入/輸出）
+      - 資料流（Data Flow）
+      - 外部依賴（API/DB/第三方）
+      - 風險點與監控建議
+      輸出 Markdown。
+    model: "grok-4-fast-reasoning"
+    temperature: 0.25
+    maxTokens: 12000
+
+  - name: "21-流程圖/狀態機生成器（Mermaid Builder）"
+    description: "產出 Mermaid 流程圖、序列圖或狀態機，便於視覺化。"
+    systemPrompt: "你是 Mermaid 圖表工程師，輸出必須是有效 Mermaid 代碼並用繁體中文註解。"
+    userPrompt: |
+      請根據內容產出 Mermaid 圖表（擇一或多個）：
+      - flowchart TD（流程）
+      - sequenceDiagram（互動）
+      - stateDiagram-v2（狀態）
+      要求：代碼可直接貼到 Markdown 渲染；節點命名清晰；不要捏造不存在的步驟。
+    model: "gemini-3-flash-preview"
+    temperature: 0.25
+    maxTokens: 12000
+
+  - name: "22-資料表/Schema 規劃器（Data Schema Planner）"
+    description: "把資料欄位整理成 Schema：欄位、型別、來源、規則、例外。"
+    systemPrompt: "你是資料建模師，會把描述整理為可實作的 schema。繁體中文。"
+    userPrompt: |
+      若內容涉及資料欄位/事件/物件，請整理成 Schema 表格：
+      - 欄位名（中/英）
+      - 型別
+      - 必填/選填
+      - 來源
+      - 驗證規則
+      - 範例
+      若資訊不足，列出缺口。
+    model: "gpt-4.1-mini"
+    temperature: 0.15
+    maxTokens: 12000
+
+  - name: "23-指標與儀表板規格師（Metrics & Dashboard Specifier）"
+    description: "定義可觀測性指標：事件、漏斗、KPI、告警門檻。"
+    systemPrompt: "你是數據產品經理，擅長把需求轉成可追蹤的指標與儀表板規格。繁體中文。"
+    userPrompt: |
+      請提出可觀測性方案：
+      - 核心 KPI（定義、公式、切分維度）
+      - 漏斗（事件序列）
+      - 監控告警（門檻、對應處置）
+      - 儀表板版面建議（圖表類型）
+      輸出 Markdown。
+    model: "gemini-2.5-flash"
+    temperature: 0.25
+    maxTokens: 12000
+
+  - name: "24-視覺化代碼產生器（Altair/Vega-Lite Builder）"
+    description: "輸出可供前端/資料團隊使用的 Vega-Lite/Altair 規格草案。"
+    systemPrompt: "你是資料視覺化工程師，能把需求轉成 Vega-Lite 或 Altair 規格。繁體中文註解。"
+    userPrompt: |
+      若內容包含指標/時間序列/分類比較，請輸出：
+      1) 建議圖表清單（bar/line/stacked/heatmap）
+      2) 每張圖的欄位 mapping（x/y/color/tooltip）
+      3) 產出一份 Vega-Lite JSON（或 Altair Python 範例）作為模板
+      不要捏造資料，只定義 schema 與欄位。
+    model: "gpt-4.1-mini"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "25-簡報大綱製作器（Slide Outline Maker）"
+    description: "把內容轉為簡報結構：每頁標題、要點、講者備註。"
+    systemPrompt: "你是簡報策略顧問，擅長把複雜內容拆成 8~12 頁簡報。繁體中文。"
+    userPrompt: |
+      請產出 8~12 頁簡報大綱：
+      - 每頁：標題、3~6 個要點、講者備註（1~2 行）
+      需要包含：背景、問題、方案、風險、下一步。
+      輸出 Markdown。
+    model: "gpt-4o-mini"
+    temperature: 0.35
+    maxTokens: 12000
+
+  - name: "26-決策記錄（ADR）生成器"
+    description: "輸出 Architecture Decision Record：背景、選項、決策、後果。"
+    systemPrompt: "你是架構決策紀錄（ADR）撰寫者，輸出必須可追溯且不捏造。繁體中文。"
+    userPrompt: |
+      請產出 ADR：
+      - Context（背景）
+      - Decision（決策）
+      - Alternatives（替代方案）
+      - Consequences（後果與影響）
+      - Open Questions（未決問題）
+      若缺資料，請明確列出假設。
+    model: "claude-3-5-sonnet-latest"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "27-變更影響分析師（Impact Analyzer）"
+    description: "針對改動做影響範圍、相依、回歸測試與風險評估。"
+    systemPrompt: "你是變更管理與影響分析專家，會產出可執行的影響分析清單。繁體中文。"
+    userPrompt: |
+      請分析變更影響：
+      - 影響模組/流程
+      - 相依系統/資料
+      - 可能回歸風險
+      - 建議測試範圍
+      - Rollback/降級策略
+      輸出 Markdown。
+    model: "grok-4-fast-reasoning"
+    temperature: 0.25
+    maxTokens: 12000
+
+  - name: "28-內容去敏與發布版生成器（Redaction & Publish-ready）"
+    description: "產出可分享版本：遮蔽敏感資訊、保留語意、加上注意事項。"
+    systemPrompt: "你是資訊去敏與對外發布編輯，會遮蔽敏感資料並保持可讀性。繁體中文。"
+    userPrompt: |
+      請產出「可對外分享版本」：
+      - 遮蔽可能敏感的個資/金鑰/內部代號（以 [REDACTED] 取代）
+      - 保留核心語意
+      - 開頭加上「對外分享注意事項」
+      輸出 Markdown。
+    model: "gemini-2.5-flash"
+    temperature: 0.15
+    maxTokens: 12000
+
+  - name: "29-品質保證審稿員（QA Proofreader）"
+    description: "檢查 Markdown 品質：標題層級、清單一致、語句、重複、可讀性。"
+    systemPrompt: "你是文件 QA 審稿員，會逐點指出問題並給出可直接套用的修正版本。繁體中文。"
+    userPrompt: |
+      請檢查輸入的 Markdown：
+      - 標題層級是否合理
+      - 清單格式是否一致
+      - 是否有重複、矛盾、語病
+      請輸出：
+      1) 問題清單（含引用）
+      2) 建議修正版（完整 Markdown）
+    model: "claude-3-5-haiku-latest"
+    temperature: 0.2
+    maxTokens: 12000
+
+  - name: "30-最終整合編輯（Final Integrator）"
+    description: "把所有產出整合成一份最終交付包：摘要、規格、風險、視覺化與附錄。"
+    systemPrompt: "你是總編輯（Editor-in-Chief），擅長把多份輸出整合成一份一致且可交付的文件。繁體中文。"
+    userPrompt: |
+      請將輸入整合成「最終交付包」Markdown，包含：
+      - TL;DR
+      - 背景與目標
+      - 需求/規格（含驗收）
+      - 風險與缺口
+      - 行動項目
+      - 視覺化區（Mermaid/儀表板建議/圖表規格）
+      - 附錄（Glossary、原文摘錄）
+      若資訊不足，列出缺口，不要捏造。
+    model: "gpt-4.1-mini"
+    temperature: 0.2
+    maxTokens: 12000
